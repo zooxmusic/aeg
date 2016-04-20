@@ -1,0 +1,67 @@
+buildscript {
+    repositories {
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
+    }
+    dependencies {
+        classpath "com.github.jengelman.gradle.plugins:shadow:1.2.3"
+    }
+}
+
+group 'com.aeg'
+version '0.0.1'
+
+apply plugin: "application"
+apply plugin: 'java'
+apply plugin: 'distribution'
+apply plugin: "com.github.johnrengelman.shadow"
+
+sourceCompatibility = 1.7
+
+mainClassName = "com.aeg.AegMain"
+applicationDefaultJvmArgs = ["-Dgreeting.language=en, -source =1.7"]
+
+task createDocs {
+    println("   IIIIII AM BILDR: $buildDir")
+    def docs = file("$buildDir/docs")
+    outputs.dir docs
+    doLast {
+        docs.mkdirs()
+        new File(docs, "readmM.txt").write("Read me!")
+    }
+}
+
+jar {
+    manifest {
+        attributes 'Main-Class': 'com.aeg.AegMain.class'
+    }
+}
+
+distributions {
+    main {
+        contents {
+            from(createDocs) {
+                into "docs"
+            }
+        }
+    }
+}
+repositories {
+    mavenCentral()
+}
+
+applicationDefaultJvmArgs = ["-Dgreeting.language=en"]
+dependencies {
+
+    compile(
+            ["com.google.code.gson:gson:2.6.2"],
+            ["com.jcraft:jsch:0.1.53"],
+            ["javax.mail:mail:1.4.7"],
+
+            ["org.apache.logging.log4j:log4j-api:2.5"],
+            ["org.apache.logging.log4j:log4j-core:2.5"]
+
+    )
+    testCompile group: 'junit', name: 'junit', version: '4.11'
+}

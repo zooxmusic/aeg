@@ -1,0 +1,40 @@
+{
+  "partners": [
+    {
+      "name": "CR",
+      "host": "vault.clearesult.com",
+      "port": 22,
+      "username": "bszucs",
+      "password": "109F0r3$t",
+      "inboundFileMappings": [
+        {
+          "local": "#AEG_HOME/IMSTransferFiles/Inbound/CR/XML_Applications",
+          "remote": "/HVAC - Files For Testing/",
+          "pattern": "*.xml"
+        },
+        {
+          "local": "#AEG_HOME/IMSTransferFiles/Inbound/CR/XML_Applications",
+          "remote": "/RNC - Files For Testing/",
+          "pattern": "*.xml"
+        }
+      ],
+      "outboundFileMappings": [
+        {
+          "local": "#AEG_HOME/IMSTransferFiles/Outbound/CR/CHECK_STATUS/HVAC",
+          "remote": "/HVAC - Return XML/",
+          "pattern": ".xml"
+        },
+        {
+          "local": "#AEG_HOME/IMSTransferFiles/Outbound/CR/QA_STATUS/HVAC",
+          "remote": "/HVAC - Return XML/",
+          "pattern": ".xml"
+        },
+        {
+          "local": "#AEG_HOME/IMSTransferFiles/Outbound/CR/CHECK_STATUS/RNC",
+          "remote": "/RNC - Return XML/",
+          "pattern": ".xml"
+        }
+      ]
+    }
+  ]
+}
