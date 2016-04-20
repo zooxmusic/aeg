@@ -50,3 +50,7 @@ On Demand
 =============
 
 You are able to select a scrpt, right click and choose Run to execute the selected script now.
+
+
+Folder Mappings
+=============

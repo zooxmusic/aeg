@@ -15,6 +15,7 @@ public class PartnerDeserializer implements JsonDeserializer<Partner> {
         final JsonObject jsonObject = jsonElement.getAsJsonObject();
         Partner partner = new Partner();
         partner.setName(jsonObject.get("name").getAsString());
+        partner.setFtp(jsonObject.get("ftp").getAsBoolean());
         partner.setHost(jsonObject.get("host").getAsString());
         partner.setPort(jsonObject.get("port").getAsInt());
         partner.setUsername(jsonObject.get("username").getAsString());

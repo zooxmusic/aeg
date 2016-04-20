@@ -7,6 +7,7 @@ import java.util.Collection;
 public class Partner {
 
     private String name;
+    private Boolean ftp = false;
     private String host;
     private int port;
     private String username;
@@ -76,5 +77,13 @@ public class Partner {
 
     public void setOutboundFileMappings(Collection<FileMapping> fileMappings) {
         this.outboundFileMappings = fileMappings;
+    }
+
+    public void setFtp(Boolean ftp) {
+        this.ftp = ftp;
+    }
+
+    public Boolean getFtp() {
+        return ftp;
     }
 }

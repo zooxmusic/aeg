@@ -1,7 +1,7 @@
 package com.aeg.transfer.saved;
 
 
-import com.aeg.transfer.TransferService;
+import com.aeg.transfer.SftpTransferService;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -13,7 +13,7 @@ import java.net.URISyntaxException;
 public class TransferServiceTest {
     public static void main(String[] args) {
 
-        TransferService transferService = TransferService.create();
+        SftpTransferService transferService = SftpTransferService.create();
 
         try {
             transferService.inbound("CR");
@@ -26,7 +26,7 @@ public class TransferServiceTest {
         }
 
 
-        TransferService transferService2 = TransferService.create();
+        SftpTransferService transferService2 = SftpTransferService.create();
         try {
             transferService2.outbound("CR");
         } catch (FileNotFoundException e) {

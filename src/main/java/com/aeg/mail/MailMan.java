@@ -53,7 +53,7 @@ public class MailMan {
 
             message.setRecipients(Message.RecipientType.TO, InternetAddress.parse("bszucs@ameresco.com"));
             message.setSubject("IMS Transfer Files Failed");
-            message.setText("Hey You," + "\n\n Fix your code");
+            message.setText("There was an error transferring the IMS files (need to add the code to specifically state it here)");
 
             Transport.send(message);
 
