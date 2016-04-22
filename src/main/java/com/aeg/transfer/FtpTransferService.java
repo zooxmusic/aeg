@@ -44,7 +44,7 @@ public class FtpTransferService implements TransferService {
     }
 
     public void outbound(String partnerName) throws IOException, URISyntaxException {
-        log.info("<<<  Outbound...");
+        log.info(">>>  Outbound...");
         for (Partner partner : getPartner(partnerName)) {
 
             Connection conn = getConnection(partner);
@@ -55,9 +55,9 @@ public class FtpTransferService implements TransferService {
                 String remoteDir = fileMapping.getRemote();
                 String pattern = fileMapping.getPattern();
 
-                log.info("<<<   LOCAL DIR: " + localDir);
-                log.info("<<<   REMOTE DIR: " + remoteDir);
-                log.info("<<<   PATTERN: " + pattern);
+                log.info(">>>   LOCAL DIR: " + localDir);
+                log.info(">>>   REMOTE DIR: " + remoteDir);
+                log.info(">>>   PATTERN: " + pattern);
 
                 try {
                     outbound(conn, localDir, pattern, remoteDir);
@@ -72,10 +72,10 @@ public class FtpTransferService implements TransferService {
     private void outbound(final Connection connection, final String localDir, final String filter, final String remoteDir) throws SftpException, IOException, JSchException, InterruptedException {
 
         try {
-            log.info("<<<   reading INSIDE outbound: ");
-            log.info("<<<   LOCAL DIR: " + localDir);
-            log.info("<<<   REMOTE DIR: " + remoteDir);
-            log.info("<<<   FILTER: " + filter);
+            log.info(">>>   reading INSIDE outbound: ");
+            log.info(">>>   LOCAL DIR: " + localDir);
+            log.info(">>>   REMOTE DIR: " + remoteDir);
+            log.info(">>>   FILTER: " + filter);
 
             connect(connection);
 
@@ -177,7 +177,7 @@ public class FtpTransferService implements TransferService {
     }
 
     public void inbound(String partnerName) throws IOException, URISyntaxException {
-        log.info(">>> Inbound...");
+        log.info("<<< Inbound...");
         for (Partner partner : getPartner(partnerName)) {
 
             Connection conn = getConnection(partner);
@@ -188,9 +188,9 @@ public class FtpTransferService implements TransferService {
                 String remoteDir = fileMapping.getRemote();
                 String pattern = fileMapping.getPattern();
 
-                log.info(">>>  REMOTE DIR: " + remoteDir);
-                log.info(">>>  LOCAL DIR: " + localDir);
-                log.info(">>>  PATTERN: " + pattern);
+                log.info("<<<  REMOTE DIR: " + remoteDir);
+                log.info("<<<  LOCAL DIR: " + localDir);
+                log.info("<<<  PATTERN: " + pattern);
 
                 try {
                     inbound(conn, remoteDir, pattern, localDir);
@@ -204,10 +204,10 @@ public class FtpTransferService implements TransferService {
 
     // inbound means "downloading". We always look from our perspective
     private void inbound(final Connection connection, final String remoteDir, final String filter, final String localDir) throws SftpException, IOException, JSchException {
-        log.info(">>>  reading INSIDE inbound: ");
-        log.info(">>>  REMOTE DIR: " + remoteDir);
-        log.info(">>>  LOCAL DIR: " + localDir);
-        log.info(">>>  FILTER: " + filter);
+        log.info("<<<  reading INSIDE inbound: ");
+        log.info("<<<  REMOTE DIR: " + remoteDir);
+        log.info("<<<  LOCAL DIR: " + localDir);
+        log.info("<<<  FILTER: " + filter);
 
         try {
             connect(connection);

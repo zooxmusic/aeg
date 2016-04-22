@@ -2,7 +2,6 @@ package com.aeg;
 
 import com.aeg.partner.Partner;
 import com.aeg.partner.PartnerHolder;
-import com.aeg.transfer.SftpTransferService;
 import com.aeg.transfer.TransferService;
 import com.aeg.transfer.TransferServiceFactory;
 import org.apache.logging.log4j.LogManager;
@@ -28,13 +27,17 @@ public class AegMain {
     // direction (both | inbound | outbound)
     // partner, a name or code or nothing. Nothing means all
     public static void main(String[] args) throws IOException, URISyntaxException {
-        log.info("we ae about to embark on a great journey;");
+        log.info("we are about to embark on a great journey;");
 
         String direction = BOTH;
         String partnerName = null;
+        AegMain main = new AegMain();
 
         // if this logic is true then we are looking for both direction and a partner name (code)
-        if(args != null && args.length == 2) {
+        if(args == null && args.length == 0) {
+            main.transfer(BOTH, "");
+            return;
+        }else if(args != null && args.length == 2) {
             String testDir = args[0];
             if(isNotValidDirection(testDir)) {
                 log.error("You must pass a direction as the first parameter. As either both, in or out");
@@ -43,29 +46,27 @@ public class AegMain {
 
             String testPartnerName = args[1];
             direction = testDir;
-            partnerName = testPartnerName;
+            main.transfer(direction, testPartnerName);
         } else if(args != null && args.length == 1) {
             String testValue = args[0];
 
             if(isValidDirection(testValue)) {
-                log.error("You must NOT pass a direction if you are only passing a partners name.");
-                System.exit(1);
+                main.transfer(direction, "");
+                return;
+            } else {
+                main.transfer(BOTH, testValue);
+                return;
             }
-
-            partnerName = testValue;
         } else {
             log.error("You have passed too many parameters");
             System.exit(1);
         }
-
-        AegMain main = new AegMain();
-        main.transfer(direction, partnerName);
-
     }
 
     private static boolean isNotValidDirection(String dir) {
         return ! isValidDirection(dir);
     }
+
     private static boolean isValidDirection(String dir) {
         return dir.equalsIgnoreCase(IN) || dir.equalsIgnoreCase(OUT) || dir.equalsIgnoreCase(BOTH);
     }
@@ -87,7 +88,6 @@ public class AegMain {
     }
 
     private void transferIn(String name) {
-
         //SftpTransferService transferService = SftpTransferService.create();
 
         try {
@@ -99,8 +99,6 @@ public class AegMain {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-
     }
 
     private void transferOut(String name) {

@@ -29,9 +29,8 @@ public class MailMan {
 
     private void internalDeliver() {
 
-
         final String username = "brian@zooxmusic.com";
-        final String password = "Z00xMu$1c";
+        final String password = "109F0r3st";
 
         Properties props = new Properties();
         props.put("mail.smtp.auth", "true");
@@ -50,8 +49,7 @@ public class MailMan {
 
             Message message = new MimeMessage(session);
             message.setFrom(new InternetAddress("transfers@ims.com"));
-
-            message.setRecipients(Message.RecipientType.TO, InternetAddress.parse("bszucs@ameresco.com"));
+            message.setRecipients(Message.RecipientType.TO, InternetAddress.parse("bszucs@ameresco.com,nmenon@appliedEnergyGroup.com"));
             message.setSubject("IMS Transfer Files Failed");
             message.setText("There was an error transferring the IMS files (need to add the code to specifically state it here)");
 
@@ -66,6 +64,4 @@ public class MailMan {
             throw new RuntimeException(e);
         }
     }
-
-
 }

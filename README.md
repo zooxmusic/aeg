@@ -5,7 +5,7 @@ The IMS FTP/SFTP Transfers is an application that is scheduled in al three IMS e
 Scheduled Windows Tasks
 =============
 
-These transfer scripts are confured to run as Windows Scheduled Tasks every 30 min on the hour for inbound and on the 15/45 for outbound.
+These transfer scripts are configured to run as Windows Scheduled Tasks every 30 min on the hour for inbound and on the 15/45 for outbound.
 
 Current Status
 =============
@@ -29,7 +29,7 @@ Configuration
 =============
 + The basic pattern to call the transfer scripts are as follows;
 
-        <path_to_jar>/transfer.jar $direction $partner
+        <path_to_java> -jar <path_to_jar>/transfer.jar $direction $partner
 
         // Use this to transfer both directions for all partners
         example: E:/AEG/scritps/transfer.jar
@@ -42,14 +42,14 @@ Configuration
 
 The 2 variables that can be dynamically changed;
 + direction ( defaults to both)
-+ partner-name (defaults to non which means all)
++ partner-name (defaults to null which means all)
 
 If you do not pass a variable for either the scripts defaults to both directions for all partners.
 
 On Demand
 =============
 
-You are able to select a scrpt, right click and choose Run to execute the selected script now.
+You are able to select a script, right click and choose Run to execute the selected script now.
 
 
 Folder Mappings

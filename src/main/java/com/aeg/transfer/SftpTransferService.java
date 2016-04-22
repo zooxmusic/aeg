@@ -43,7 +43,7 @@ public class SftpTransferService implements TransferService {
     }
 
     public void outbound(String partnerName) throws IOException, URISyntaxException {
-        log.info("<<<  Outbound...");
+        log.info(">>>  Outbound...");
         for (Partner partner : getPartner(partnerName)) {
 
             Connection conn = getConnection(partner);
@@ -54,9 +54,9 @@ public class SftpTransferService implements TransferService {
                 String remoteDir = fileMapping.getRemote();
                 String pattern = fileMapping.getPattern();
 
-                log.info("<<<   LOCAL DIR: " + localDir);
-                log.info("<<<   REMOTE DIR: " + remoteDir);
-                log.info("<<<   PATTERN: " + pattern);
+                log.info(String.format(">>>   LOCAL DIR: %s", localDir));
+                log.info(String.format(">>>   REMOTE DIR: %s", remoteDir));
+                log.info(String.format(">>>   PATTERN: %s", pattern));
 
                 try {
                     outbound(conn, localDir, pattern, remoteDir);
@@ -71,10 +71,10 @@ public class SftpTransferService implements TransferService {
     private void outbound(final Connection connection, final String localDir, final String filter, final String remoteDir) throws SftpException, IOException, JSchException, InterruptedException {
 
         try {
-            log.info("<<<   reading INSIDE outbound: ");
-            log.info("<<<   LOCAL DIR: " + localDir);
-            log.info("<<<   REMOTE DIR: " + remoteDir);
-            log.info("<<<   FILTER: " + filter);
+            log.info(">>>   reading INSIDE outbound: ");
+            log.info(String.format(">>>   LOCAL DIR: %s", localDir));
+            log.info(String.format(">>>   REMOTE DIR: %s", remoteDir));
+            log.info(String.format(">>>   FILTER: %s", filter));
 
             connect(connection);
 
@@ -120,7 +120,7 @@ public class SftpTransferService implements TransferService {
                 channelSftp.put(fis, fileName);
 
                 toRename.add(file.getAbsolutePath());
-                log.info("File transfered successfully to host.");
+                log.info("File transferred successfully to host.");
 
                 fis.close();
             }
@@ -175,7 +175,7 @@ public class SftpTransferService implements TransferService {
     }
 
     public void inbound(String partnerName) throws IOException, URISyntaxException {
-        log.info(">>> Inbound...");
+        log.info("<<< Inbound...");
         for (Partner partner : getPartner(partnerName)) {
 
             Connection conn = getConnection(partner);
@@ -186,9 +186,9 @@ public class SftpTransferService implements TransferService {
                 String remoteDir = fileMapping.getRemote();
                 String pattern = fileMapping.getPattern();
 
-                log.info(">>>  REMOTE DIR: " + remoteDir);
-                log.info(">>>  LOCAL DIR: " + localDir);
-                log.info(">>>  PATTERN: " + pattern);
+                log.info(String.format("<<<  REMOTE DIR: %s", remoteDir));
+                log.info(String.format("<<<  LOCAL DIR: %s", localDir));
+                log.info(String.format("<<<  PATTERN: %s", pattern));
 
                 try {
                     inbound(conn, remoteDir, pattern, localDir);
@@ -202,10 +202,10 @@ public class SftpTransferService implements TransferService {
 
     // inbound means "downloading". We always look from our perspective
     private void inbound(final Connection connection, final String remoteDir, String filter, final String localDir) throws SftpException, FileNotFoundException, JSchException {
-        log.info(">>>  reading INSIDE inbound: ");
-        log.info(">>>  REMOTE DIR: " + remoteDir);
-        log.info(">>>  LOCAL DIR: " + localDir);
-        log.info(">>>  FILTER: " + filter);
+        log.info("<<<  reading INSIDE inbound: ");
+        log.info(String.format("<<<  REMOTE DIR: %s", remoteDir));
+        log.info(String.format("<<<  LOCAL DIR: %s", localDir));
+        log.info(String.format("<<<  FILTER: %s", filter));
 
         try {
             connect(connection);
@@ -220,6 +220,7 @@ public class SftpTransferService implements TransferService {
             }
 
             channelSftp.cd(remoteDir);
+
             Vector<ChannelSftp.LsEntry> list = channelSftp.ls(filter);
             for (ChannelSftp.LsEntry entry : list) {
                 try {
@@ -229,7 +230,6 @@ public class SftpTransferService implements TransferService {
                     channelSftp.rename(oldName, newName);
                     String message = String.format("Remote File: [%s] was downloaded to %s%s and then renamed to [%s]", oldName, tmpLocal, oldName, newName);
                     log.info(message);
-
 
                 } catch (Exception e) {
                     log.error(e.getMessage(), e);
