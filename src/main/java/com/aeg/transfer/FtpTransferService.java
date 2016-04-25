@@ -3,7 +3,7 @@ package com.aeg.transfer;
 import com.aeg.mail.MailMan;
 import com.aeg.partner.FileMapping;
 import com.aeg.partner.Partner;
-import com.aeg.partner.PartnerHolder;
+import com.aeg.pgp.PGPFileProcessor;
 import com.jcraft.jsch.*;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
@@ -13,12 +13,10 @@ import org.apache.logging.log4j.Logger;
 
 import java.io.*;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Properties;
 import java.util.Vector;
 
 /**
@@ -28,7 +26,7 @@ public class FtpTransferService implements TransferService {
 
     private Logger log = LogManager.getLogger(FtpTransferService.class.getName());
 
-    private static final String COMPLETED_EXPRESSION = ".done";
+    private static final String COMPLETED_EXPRESSION = "done";
 
     private FTPClient ftp = null;
 
@@ -39,37 +37,31 @@ public class FtpTransferService implements TransferService {
     public FtpTransferService() {
     }
 
-    public void outbound() throws IOException, URISyntaxException {
-        outbound(null);
-    }
-
-    public void outbound(String partnerName) throws IOException, URISyntaxException {
+    public void outbound(Partner partner) throws IOException, URISyntaxException {
         log.info(">>>  Outbound...");
-        for (Partner partner : getPartner(partnerName)) {
+        Connection conn = getConnection(partner);
 
-            Connection conn = getConnection(partner);
+        for (FileMapping fileMapping : partner.getOutboundFileMappings()) {
 
-            for (FileMapping fileMapping : partner.getOutboundFileMappings()) {
+            String localDir = fileMapping.getLocal();
+            String remoteDir = fileMapping.getRemote();
+            String pattern = fileMapping.getPattern();
 
-                String localDir = fileMapping.getLocal();
-                String remoteDir = fileMapping.getRemote();
-                String pattern = fileMapping.getPattern();
+            log.info(">>>   LOCAL DIR: " + localDir);
+            log.info(">>>   REMOTE DIR: " + remoteDir);
+            log.info(">>>   PATTERN: " + pattern);
 
-                log.info(">>>   LOCAL DIR: " + localDir);
-                log.info(">>>   REMOTE DIR: " + remoteDir);
-                log.info(">>>   PATTERN: " + pattern);
-
-                try {
-                    outbound(conn, localDir, pattern, remoteDir);
-                } catch (Exception e) {
-                    log.error(e.getMessage(), e);
-                    MailMan.deliver();
-                }
+            try {
+                outbound(conn, localDir, pattern, remoteDir, partner.getEncrypted());
+            } catch (Exception e) {
+                log.error(e.getMessage(), e);
+                MailMan.deliver();
             }
         }
+
     }
 
-    private void outbound(final Connection connection, final String localDir, final String filter, final String remoteDir) throws SftpException, IOException, JSchException, InterruptedException {
+    private void outbound(final Connection connection, final String localDir, final String filter, final String remoteDir, boolean encrypted) throws Exception {
 
         try {
             log.info(">>>   reading INSIDE outbound: ");
@@ -92,6 +84,12 @@ public class FtpTransferService implements TransferService {
             if (!dir.exists()) {
                 dir.mkdirs();
             }
+            String doneD = String.format("%s/%s/", localDir, COMPLETED_EXPRESSION);
+            File doneDir = new File(doneD);
+            if(!doneDir.exists()) {
+                doneDir.mkdirs();
+            }
+
             File[] files = null;
             if(bFilter) {
 
@@ -115,13 +113,32 @@ public class FtpTransferService implements TransferService {
                 throw new FileNotFoundException(message);
             }
             Vector<String> toRename = new Vector<String>();
+            Vector<String> toDelete = new Vector<String>();
 
             for (File file : files) {
-                FileInputStream fis = new FileInputStream(file);
-                String fileName = file.getName();
+                toDelete.add(file.getAbsolutePath());
+                File tmpFile = null;
+                if(encrypted) {
+                    PGPFileProcessor fileProcessor = new PGPFileProcessor();
+                    fileProcessor.setAsciiArmored(true);
+                    fileProcessor.setInputFile(file.getAbsolutePath());
+                    URL url = SftpTransferService.class.getResource("/keys/ims-pub.asc");
+                    fileProcessor.setKeyFile(url.getPath());
+                    String outputFile = String.format("%s.gpg", file.getAbsolutePath());
+                    fileProcessor.setOutputFile(outputFile);
+                    fileProcessor.setPassphrase("AEG2016!");
+                    fileProcessor.encrypt();
+                    tmpFile = new File(outputFile);
+                } else {
+                    tmpFile = new File(file.getAbsolutePath());
+                }
+
+
+                FileInputStream fis = new FileInputStream(tmpFile);
+                String fileName = tmpFile.getName();
                 ftp.storeFile(fileName, fis);
 
-                toRename.add(file.getAbsolutePath());
+                toRename.add(tmpFile.getAbsolutePath());
                 log.info("File transfered successfully to host.");
 
                 fis.close();
@@ -129,11 +146,21 @@ public class FtpTransferService implements TransferService {
 
             for (String fileToRename : toRename) {
                 try {
-                    rename(Paths.get(fileToRename));
+
+                    renameAndMove(Paths.get(fileToRename), Paths.get(doneDir.getAbsolutePath()));
                 } catch (Exception e) {
                     e.printStackTrace();
                     String message = String.format("Failed to rename local file [%s]", fileToRename);
                     log.error(message);
+                }
+            }
+
+            for(String fileToDelete : toDelete) {
+                try {
+                    File del = new File(fileToDelete);
+                    del.delete();
+                }catch(Exception e) {
+                    log.error(e.getMessage(), e);
                 }
             }
         } catch (Exception e) {
@@ -153,53 +180,45 @@ public class FtpTransferService implements TransferService {
         return connection;
     }
 
-    private List<Partner> getPartner(String name) throws IOException, URISyntaxException {
-        if (null == name || "".equalsIgnoreCase(name.trim())) return PartnerHolder.getInstance().getPartnerList();
-        List<Partner> partners = new ArrayList<Partner>();
 
-        Partner partner = PartnerHolder.getInstance().find(name);
-        if (null != partner) {
-            partners.add(partner);
-        }
-        return partners;
-    }
+    private void renameAndMove(Path file, Path doneDir) throws IOException {
 
-    private void rename(Path file) throws IOException {
-        String newName = String.format("%s%s", file.getFileName().toString(), COMPLETED_EXPRESSION);
+        String oldName = file.getFileName().toString();
+        //String oldPath = String.format("%s/%s", remoteDir, oldName);
+
+        String newName = String.format("%s/%s", COMPLETED_EXPRESSION, oldName);
+
+
+        //String newName = String.format("%s%s", file.getFileName().toString(), COMPLETED_EXPRESSION);
         Path dir = file.getParent();
-        Path fn = file.getFileSystem().getPath(newName);
+        //Path fn = file.getFileSystem().getPath(newName);
+        Path fn = doneDir.getFileSystem().getPath(newName);
         Path target = (dir == null) ? fn : dir.resolve(fn);
         Files.move(file, target);
     }
 
-    public void inbound() throws IOException, URISyntaxException {
-        inbound(null);
-    }
-
-    public void inbound(String partnerName) throws IOException, URISyntaxException {
+    public void inbound(Partner partner) throws IOException, URISyntaxException {
         log.info("<<< Inbound...");
-        for (Partner partner : getPartner(partnerName)) {
+        Connection conn = getConnection(partner);
 
-            Connection conn = getConnection(partner);
+        for (FileMapping fileMapping : partner.getInboundFileMappings()) {
 
-            for (FileMapping fileMapping : partner.getInboundFileMappings()) {
+            String localDir = fileMapping.getLocal();
+            String remoteDir = fileMapping.getRemote();
+            String pattern = fileMapping.getPattern();
 
-                String localDir = fileMapping.getLocal();
-                String remoteDir = fileMapping.getRemote();
-                String pattern = fileMapping.getPattern();
+            log.info("<<<  REMOTE DIR: " + remoteDir);
+            log.info("<<<  LOCAL DIR: " + localDir);
+            log.info("<<<  PATTERN: " + pattern);
 
-                log.info("<<<  REMOTE DIR: " + remoteDir);
-                log.info("<<<  LOCAL DIR: " + localDir);
-                log.info("<<<  PATTERN: " + pattern);
-
-                try {
-                    inbound(conn, remoteDir, pattern, localDir);
-                } catch (Exception e) {
-                    log.error(e.getMessage(), e);
-                    MailMan.deliver();
-                }
+            try {
+                inbound(conn, remoteDir, pattern, localDir);
+            } catch (Exception e) {
+                log.error(e.getMessage(), e);
+                MailMan.deliver();
             }
         }
+
     }
 
     // inbound means "downloading". We always look from our perspective
@@ -242,7 +261,7 @@ public class FtpTransferService implements TransferService {
             for (FTPFile ftpFile : ftpFiles) {
                 try {
                     String oldName = ftpFile.getName();
-                    String newName = oldName + COMPLETED_EXPRESSION;
+                    String newName = String.format("%s.%s", oldName, COMPLETED_EXPRESSION);
 
                     String downloaded = tmpLocal + ftpFile.getName();
                     toRename.add(oldName);
@@ -268,8 +287,6 @@ public class FtpTransferService implements TransferService {
                     output.close();
 
 
-                    String message = String.format("Remote File: [%s] was downloaded to %s%s and then renamed to [%s]", oldName, tmpLocal, oldName, newName);
-                    log.info(message);
 
                     //ftp.deleteFile(oldName);
 
@@ -288,11 +305,14 @@ public class FtpTransferService implements TransferService {
                     //File localFile = new File(downloaded);
                     //FileInputStream fis = new FileInputStream(localFile);
                     //String fileName = localFile.getName() + COMPLETED_EXPRESSION;
-                    String fileName = downloaded + COMPLETED_EXPRESSION;
-                    ftp.rename(downloaded, fileName);
+                    //String newPath = String.format("%s/%s.%s", COMPLETED_EXPRESSION, downloaded, COMPLETED_EXPRESSION);
+                    String newPath = String.format("%s/%s", COMPLETED_EXPRESSION, downloaded);
+
+                    ftp.rename(downloaded, newPath);
                     //ftp.storeFile(fileName, fis);
 
-                    log.info("File transfered successfully to host.");
+                    String message = String.format("Remote File: [%s] was downloaded to %s and then moved to to [%s]", downloaded, tmpLocal, newPath);
+                    log.info(message);
 
                     //fis.close();
 

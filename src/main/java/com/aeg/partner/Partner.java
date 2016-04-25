@@ -8,6 +8,10 @@ public class Partner {
 
     private String name;
     private Boolean ftp = false;
+    private String keyFile = "";
+    private String keyUser = "";
+    private String keyPassword = "";
+    private Boolean encrypted = false;
     private String host;
     private int port;
     private String username;
@@ -85,5 +89,37 @@ public class Partner {
 
     public Boolean getFtp() {
         return ftp;
+    }
+
+    public Boolean getEncrypted() {
+        return encrypted;
+    }
+
+    public void setEncrypted(Boolean encrypted) {
+        this.encrypted = encrypted;
+    }
+
+    public void setKeyFile(String keyFile) {
+        this.keyFile = keyFile;
+    }
+
+    public void setKeyPassword(String keyPassword) {
+        this.keyPassword = keyPassword;
+    }
+
+    public void setKeyUser(String keyUser) {
+        this.keyUser = keyUser;
+    }
+
+    public String getKeyFile() {
+        return keyFile;
+    }
+
+    public String getKeyPassword() {
+        return keyPassword;
+    }
+
+    public String getKeyUser() {
+        return keyUser;
     }
 }

@@ -16,6 +16,10 @@ public class PartnerSerializer implements JsonSerializer<Partner> {
         final JsonObject jsonObject = new JsonObject();
         jsonObject.addProperty("name", partner.getName());
         jsonObject.addProperty("ftp", partner.getFtp());
+        jsonObject.addProperty("encrypted", partner.getEncrypted());
+        jsonObject.addProperty("keyFile", partner.getKeyFile());
+        jsonObject.addProperty("keyUser", partner.getKeyUser());
+        jsonObject.addProperty("keyPassword", partner.getKeyPassword());
         jsonObject.addProperty("host", partner.getHost());
         jsonObject.addProperty("port", partner.getPort());
         jsonObject.addProperty("username", partner.getUsername());

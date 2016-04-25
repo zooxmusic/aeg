@@ -3,18 +3,17 @@ package com.aeg.transfer;
 import com.aeg.mail.MailMan;
 import com.aeg.partner.FileMapping;
 import com.aeg.partner.Partner;
-import com.aeg.partner.PartnerHolder;
+import com.aeg.pgp.PGPFileProcessor;
 import com.jcraft.jsch.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.*;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Properties;
 import java.util.Vector;
 
@@ -25,7 +24,7 @@ public class SftpTransferService implements TransferService {
 
     private Logger log = LogManager.getLogger(SftpTransferService.class.getName());
 
-    private static final String COMPLETED_EXPRESSION = ".done";
+    private static final String COMPLETED_EXPRESSION = "done";
 
     private Session session = null;
     private Channel channel = null;
@@ -38,37 +37,31 @@ public class SftpTransferService implements TransferService {
     public SftpTransferService() {
     }
 
-    public void outbound() throws IOException, URISyntaxException {
-        outbound(null);
-    }
-
-    public void outbound(String partnerName) throws IOException, URISyntaxException {
+    public void outbound(Partner partner) throws IOException, URISyntaxException {
         log.info(">>>  Outbound...");
-        for (Partner partner : getPartner(partnerName)) {
 
-            Connection conn = getConnection(partner);
+        Connection conn = getConnection(partner);
 
-            for (FileMapping fileMapping : partner.getOutboundFileMappings()) {
+        for (FileMapping fileMapping : partner.getOutboundFileMappings()) {
 
-                String localDir = fileMapping.getLocal();
-                String remoteDir = fileMapping.getRemote();
-                String pattern = fileMapping.getPattern();
+            String localDir = fileMapping.getLocal();
+            String remoteDir = fileMapping.getRemote();
+            String pattern = fileMapping.getPattern();
 
-                log.info(String.format(">>>   LOCAL DIR: %s", localDir));
-                log.info(String.format(">>>   REMOTE DIR: %s", remoteDir));
-                log.info(String.format(">>>   PATTERN: %s", pattern));
+            log.info(String.format(">>>   LOCAL DIR: %s", localDir));
+            log.info(String.format(">>>   REMOTE DIR: %s", remoteDir));
+            log.info(String.format(">>>   PATTERN: %s", pattern));
 
-                try {
-                    outbound(conn, localDir, pattern, remoteDir);
-                } catch (Exception e) {
-                    log.error(e.getMessage(), e);
-                    MailMan.deliver();
-                }
+            try {
+                outbound(conn, localDir, pattern, remoteDir, partner);
+            } catch (Exception e) {
+                log.error(e.getMessage(), e);
+                MailMan.deliver();
             }
         }
     }
 
-    private void outbound(final Connection connection, final String localDir, final String filter, final String remoteDir) throws SftpException, IOException, JSchException, InterruptedException {
+    private void outbound(final Connection connection, final String localDir, final String filter, final String remoteDir, final Partner partner) throws Exception {
 
         try {
             log.info(">>>   reading INSIDE outbound: ");
@@ -89,6 +82,12 @@ public class SftpTransferService implements TransferService {
             File dir = new File(localDir);
             if (!dir.exists()) {
                 dir.mkdirs();
+
+            }
+            String doneD = String.format("%s/%s", localDir, COMPLETED_EXPRESSION);
+            File doneDir = new File(doneD);
+            if(!doneDir.exists()) {
+                doneDir.mkdirs();
             }
             File[] files = null;
             if(bFilter) {
@@ -113,25 +112,54 @@ public class SftpTransferService implements TransferService {
                 throw new FileNotFoundException(message);
             }
             Vector<String> toRename = new Vector<String>();
+            Vector<String> toDelete = new Vector<String>();
 
             for (File file : files) {
-                FileInputStream fis = new FileInputStream(file);
-                String fileName = file.getName();
+                toDelete.add(file.getAbsolutePath());
+                File tmpFile = null;
+
+                if(partner.getEncrypted()) {
+
+                    PGPFileProcessor fileProcessor = new PGPFileProcessor();
+                    fileProcessor.setAsciiArmored(true);
+                    fileProcessor.setInputFile(file.getAbsolutePath());
+                    URL url = SftpTransferService.class.getResource(partner.getKeyFile());
+                    String outputFile = String.format("%s.gpg", file.getAbsolutePath());
+                    fileProcessor.setOutputFile(outputFile);
+                    fileProcessor.setKeyFile(url.getPath());
+                    fileProcessor.setPassphrase(partner.getKeyPassword());
+                    fileProcessor.encrypt();
+                    tmpFile = new File(outputFile);
+                } else {
+                    tmpFile = new File(file.getAbsolutePath());
+                }
+
+
+                FileInputStream fis = new FileInputStream(tmpFile);
+                String fileName = tmpFile.getName();
                 channelSftp.put(fis, fileName);
-
-                toRename.add(file.getAbsolutePath());
-                log.info("File transferred successfully to host.");
-
+                toRename.add(tmpFile.getAbsolutePath());
                 fis.close();
+
+                log.info("File transferred successfully to host.");
             }
 
             for (String fileToRename : toRename) {
                 try {
-                    rename(Paths.get(fileToRename));
+                    renameAndMove(Paths.get(fileToRename), Paths.get(doneDir.getAbsolutePath()));
                 } catch (Exception e) {
                     e.printStackTrace();
                     String message = String.format("Failed to rename local file [%s]", fileToRename);
                     log.error(message);
+                }
+            }
+
+            for(String fileToDelete : toDelete) {
+                try {
+                    File del = new File(fileToDelete);
+                    del.delete();
+                }catch(Exception e) {
+                    log.error(e.getMessage(), e);
                 }
             }
         } catch (Exception e) {
@@ -151,57 +179,47 @@ public class SftpTransferService implements TransferService {
         return connection;
     }
 
-    private List<Partner> getPartner(String name) throws IOException, URISyntaxException {
-        if (null == name || "".equalsIgnoreCase(name.trim())) return PartnerHolder.getInstance().getPartnerList();
-        List<Partner> partners = new ArrayList<Partner>();
-
-        Partner partner = PartnerHolder.getInstance().find(name);
-        if (null != partner) {
-            partners.add(partner);
-        }
-        return partners;
-    }
-
-    private void rename(Path file) throws IOException {
-        String newName = String.format("%s%s", file.getFileName().toString(), COMPLETED_EXPRESSION);
+    private void renameAndMove(Path file, Path doneD) throws IOException {
+        //String newName = String.format("%s.%s", file.getFileName().toString(), COMPLETED_EXPRESSION);
+        String newName = String.format("/%s/%s", COMPLETED_EXPRESSION, file.getFileName().toString());
         Path dir = file.getParent();
-        Path fn = file.getFileSystem().getPath(newName);
+        Path fn = doneD.getFileSystem().getPath(newName);
         Path target = (dir == null) ? fn : dir.resolve(fn);
+
+        //String newName = String.format("%s/%s.%s", COMPLETED_EXPRESSION, file.getFileName().toString(), COMPLETED_EXPRESSION);
+        //Path dir = file.getParent();
+        //Path fn = file.getFileSystem().getPath(newName);
+        //Path target = (dir == null) ? fn : dir.resolve(fn);
         Files.move(file, target);
     }
 
-    public void inbound() throws IOException, URISyntaxException {
-        inbound(null);
-    }
-
-    public void inbound(String partnerName) throws IOException, URISyntaxException {
+    public void inbound(Partner partner) throws IOException, URISyntaxException {
         log.info("<<< Inbound...");
-        for (Partner partner : getPartner(partnerName)) {
 
-            Connection conn = getConnection(partner);
+        Connection conn = getConnection(partner);
 
-            for (FileMapping fileMapping : partner.getInboundFileMappings()) {
+        for (FileMapping fileMapping : partner.getInboundFileMappings()) {
 
-                String localDir = fileMapping.getLocal();
-                String remoteDir = fileMapping.getRemote();
-                String pattern = fileMapping.getPattern();
+            String localDir = fileMapping.getLocal();
+            String remoteDir = fileMapping.getRemote();
+            String pattern = fileMapping.getPattern();
 
-                log.info(String.format("<<<  REMOTE DIR: %s", remoteDir));
-                log.info(String.format("<<<  LOCAL DIR: %s", localDir));
-                log.info(String.format("<<<  PATTERN: %s", pattern));
+            log.info(String.format("<<<  REMOTE DIR: %s", remoteDir));
+            log.info(String.format("<<<  LOCAL DIR: %s", localDir));
+            log.info(String.format("<<<  PATTERN: %s", pattern));
 
-                try {
-                    inbound(conn, remoteDir, pattern, localDir);
-                } catch (Exception e) {
-                    log.error(e.getMessage(), e);
-                    MailMan.deliver();
-                }
+            try {
+                inbound(conn, remoteDir, pattern, localDir, partner);
+            } catch (Exception e) {
+                log.error(e.getMessage(), e);
+                MailMan.deliver();
             }
         }
+
     }
 
     // inbound means "downloading". We always look from our perspective
-    private void inbound(final Connection connection, final String remoteDir, String filter, final String localDir) throws SftpException, FileNotFoundException, JSchException {
+    private void inbound(final Connection connection, final String remoteDir, String filter, final String localDir, final Partner partner) throws SftpException, FileNotFoundException, JSchException {
         log.info("<<<  reading INSIDE inbound: ");
         log.info(String.format("<<<  REMOTE DIR: %s", remoteDir));
         log.info(String.format("<<<  LOCAL DIR: %s", localDir));
@@ -221,20 +239,55 @@ public class SftpTransferService implements TransferService {
 
             channelSftp.cd(remoteDir);
 
+            Vector<String> toDecrypt = new Vector<String>();
+
             Vector<ChannelSftp.LsEntry> list = channelSftp.ls(filter);
             for (ChannelSftp.LsEntry entry : list) {
                 try {
+
                     String oldName = entry.getFilename();
-                    String newName = oldName + COMPLETED_EXPRESSION;
-                    channelSftp.get(entry.getFilename(), tmpLocal);
-                    channelSftp.rename(oldName, newName);
+                    String oldPath = String.format("%s/%s", remoteDir, oldName);
+
+                    String newName = String.format("%s.%s", oldName, COMPLETED_EXPRESSION);
+                    String newPath = String.format("%s/%s/%s", remoteDir, COMPLETED_EXPRESSION, newName);
+
+                    channelSftp.get(oldName, tmpLocal);
+
+                    //channelSftp.rename(oldPath, newPath);
+
+
                     String message = String.format("Remote File: [%s] was downloaded to %s%s and then renamed to [%s]", oldName, tmpLocal, oldName, newName);
                     log.info(message);
+
+
+                    if(partner.getEncrypted()) {
+                        String fileName = String.format("%s/%s", localDir, oldName);
+                        toDecrypt.add(fileName);
+                    }
 
                 } catch (Exception e) {
                     log.error(e.getMessage(), e);
                     continue;
                 }
+
+
+                try {
+                    for(String toD : toDecrypt) {
+                        PGPFileProcessor fileProcessor = new PGPFileProcessor();
+                        fileProcessor.setAsciiArmored(false);
+                        fileProcessor.setInputFile(toD);
+                        URL url = SftpTransferService.class.getResource("/keys/ims-pub.asc");
+                        String fName = entry.getLongname();
+                        String outputFile = fName.substring(0, fName.lastIndexOf("."));
+                        fileProcessor.setOutputFile(outputFile);
+                        fileProcessor.setKeyFile(url.getPath());
+                        fileProcessor.setPassphrase("AEG2016!");
+                        fileProcessor.decrypt();
+                    }
+                }catch(Exception e) {
+                    log.error(e.getMessage(), e);
+                }
+
             }
 
         } catch (Exception e) {

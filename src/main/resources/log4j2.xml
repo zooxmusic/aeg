@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Configuration status="INFO">
     <Properties>
-        <Property name="log-path">E:/AEG/log/</Property>
+        <Property name="log-path">${sys.AEG_HOME}/log/</Property>
     </Properties>
     <Appenders>
         <RollingFile name="RollingFile" fileName="${log-path}/transfers.log"

@@ -18,18 +18,18 @@ public class PartnerHolder {
 
     private static PartnerHolder INSTANCE = null;
 
-    public static PartnerHolder getInstance() throws IOException, URISyntaxException {
+    public static PartnerHolder getInstance() throws Exception {
         if (null == INSTANCE) {
             INSTANCE = new PartnerHolder();
         }
         return INSTANCE;
     }
 
-    private String partnersFilePath = "E://AEG//config//partners.json";
+    private String partnersFilePath = "%s/config//partners.json";
     private String json;
     //private Path partnersJson;
 
-    private PartnerHolder() throws IOException, URISyntaxException {
+    private PartnerHolder() throws Exception {
         read();
     }
 
@@ -42,7 +42,7 @@ public class PartnerHolder {
         return null;
     }
 
-    private void read() throws URISyntaxException, IOException {
+    private void read() throws Exception {
 
 
         /*File file = new File(partnersFilePath);
@@ -52,9 +52,16 @@ public class PartnerHolder {
         for (String line : lines) {
             builder.append(line);
         }*/
-        String tmp = FileUtil.readFile(partnersFilePath);
 
-        json = sanitize(tmp);
+        String aegHome = System.getenv().get("AEG_HOME");
+        if(null == aegHome || "".equalsIgnoreCase(aegHome)) {
+            throw new Exception("AEG_HOME is not set");
+        }
+
+        String path = String.format(partnersFilePath, aegHome);
+        String tmp = FileUtil.readFile(path);
+
+        json = sanitize(aegHome, tmp);
         partners = new Gson().fromJson(json, Partners.class);
     }
 
@@ -63,11 +70,7 @@ public class PartnerHolder {
         partnersJson = Paths.get(url.toURI());
         read();
     }*/
-    private String sanitize(String original) {
-        String aegHome = System.getProperty("AEG_HOME");
-        if (null == aegHome || "".equalsIgnoreCase(aegHome.trim())) {
-            aegHome = "E:/AEG";
-        }
+    private String sanitize(String aegHome, String original) {
         return original.replaceAll("#AEG_HOME", aegHome);
     }
 

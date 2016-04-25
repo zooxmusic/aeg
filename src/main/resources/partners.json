@@ -2,7 +2,11 @@
   "partners": [
     {
       "name": "CR",
-	  "ftp": "false",
+      "ftp": "false",
+      "encrypted": "false",
+      "keyFile": "",
+      "keyUser": "",
+      "keyPassword": "",
       "host": "vault.clearesult.com",
       "port": 22,
       "username": "bszucs",
@@ -34,12 +38,21 @@
           "local": "#AEG_HOME/IMSTransferFiles/Outbound/CR/CHECK_STATUS/RNC",
           "remote": "/RNC - Return XML/",
           "pattern": ".xml"
+        },
+        {
+          "local": "#AEG_HOME/IMSTransferFiles/Outbound/CR/QA_STATUS/RNC",
+          "remote": "/RNC - Return XML/",
+          "pattern": ".xml"
         }
       ]
     },
     {
       "name": "CRH",
-	  "ftp": "false",
+      "ftp": "false",
+      "encrypted": "false",
+      "keyFile": "",
+      "keyUser": "",
+      "keyPassword": "",
       "host": "vault.clearesult.com",
       "port": 22,
       "username": "bszucs",
@@ -55,18 +68,22 @@
         {
           "local": "#AEG_HOME/IMSTransferFiles/Outbound/CRH/CHECK_STATUS/HPWES",
           "remote": "/HPwES - Return XML/",
-          "pattern": ".xml"
+          "pattern": ".csv"
         },
         {
           "local": "#AEG_HOME/IMSTransferFiles/Outbound/CRH/QA_STATUS/HPWES",
           "remote": "/HPwES - Return XML/",
-          "pattern": ".xml"
+          "pattern": ".csv"
         }
       ]
     },
     {
       "name": "ICF",
-	  "ftp": "false",
+      "ftp": "false",
+      "encrypted": "true",
+      "keyFile": "/keys/icfpub.asc",
+      "keyUser": "NJCEP",
+      "keyPassword": "5YF08pcm",
       "host": "transfer.icfwebservices.com",
       "port": 22,
       "username": "NJCEP_test",
@@ -75,25 +92,29 @@
         {
           "local": "#AEG_HOME/IMSTransferFiles/Inbound/ICF/XML_CheckStatus",
           "remote": "/FromICF/CheckConfirmations/",
-          "pattern": "*.xml"
+          "pattern": "*.pgp"
         },
         {
           "local": "#AEG_HOME/IMSTransferFiles/Inbound/ICF/XML_CheckStatus",
           "remote": "/FromICF/CheckStopClearVoids/",
-          "pattern": "*.xml"
+          "pattern": "*.pgp"
         }
       ],
       "outboundFileMappings": [
         {
           "local": "#AEG_HOME/IMSTransferFiles/Outbound/ICF/PAYMENT_PROCESSING",
-          "remote": "/ToICF/CheckRequest/",
+          "remote": "/ToICF/CheckRequests/",
           "pattern": ".xml"
         }
       ]
     },
-	{
+    {
       "name": "TRC",
-	  "ftp": "true",
+      "ftp": "true",
+      "encrypted": "true",
+      "keyFile": "keys/icfpub.asc",
+      "keyUser": "NJCEP",
+      "keyPassword": "",
       "host": "es-ftp1.trcsolutions.com",
       "port": 21,
       "username": "IMSTEST",
@@ -111,8 +132,8 @@
           "remote": "/FromIMS/CHECK_STATUS/",
           "pattern": ".xml"
         },
-		{
-          "local": "#AEG_HOME/IMSTransferFiles/Outbound/TRC/PAYMENT_PROCESSING",
+        {
+          "local": "#AEG_HOME/IMSTransferFiles/Outbound/TRC/QA_STATUS",
           "remote": "/FromIMS/QA_STATUS/",
           "pattern": ".xml"
         }
@@ -120,7 +141,11 @@
     },
     {
       "name": "AEG",
-	  "ftp": "false",
+      "ftp": "false",
+      "encrypted": "false",
+      "keyFile": "",
+      "keyUser": "",
+      "keyPassword": "",
       "host": "sftp.ameresco.com",
       "port": 22,
       "username": "sftp_a037_g30",
@@ -154,17 +179,17 @@
           "pattern": ".xml"
         },
         {
-          "local": "#AEG_HOME/IMSTransferFiles/Outbound/AEG/VISION/EEP",
+          "local": "#AEG_HOME/IMSTransferFiles/Outbound/ICF/VISION/EEP",
           "remote": "/fromIMS_UAT/EEP/",
           "pattern": ".xml"
         },
         {
-          "local": "#AEG_HOME/IMSTransferFiles/Outbound/AEG/VISION/NONSOLAR",
+          "local": "#AEG_HOME/IMSTransferFiles/Outbound/ICF/VISION/NONSOLAR",
           "remote": "/fromIMS_UAT/REIP/",
           "pattern": ".xml"
         },
         {
-          "local": "#AEG_HOME/IMSTransferFiles/Outbound/AEG/VISION/CHP",
+          "local": "#AEG_HOME/IMSTransferFiles/Outbound/ICF/VISION/CHP",
           "remote": "/fromIMS_UAT/CHP/",
           "pattern": ".xml"
         }

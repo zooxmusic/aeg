@@ -20,101 +20,211 @@ public class AegMain {
     private static String OUT = "out";
     private static String BOTH = "both";
 
-    private TransferService transferService = null;
-
     private static Logger log = LogManager.getFormatterLogger(AegMain.class.getName());
 
-    // direction (both | inbound | outbound)
-    // partner, a name or code or nothing. Nothing means all
+    /**
+     * We can pass 0 to 2 parameters. With no parameters we assume all partners in both directions
+     * if we have just a direction then we have all partners in the direction passed
+     * if we only have a partner then we have both directions with that partner
+     * if we have both then we do the explicit direction with that partner
+     * @param args direction (both | inbound | outbound) partner, a name or code or nothing. Nothing means all
+     * @throws IOException
+     * @throws URISyntaxException
+     */
     public static void main(String[] args) throws IOException, URISyntaxException {
         log.info("we are about to embark on a great journey;");
-
-        String direction = BOTH;
-        String partnerName = null;
         AegMain main = new AegMain();
-
-        // if this logic is true then we are looking for both direction and a partner name (code)
-        if(args == null && args.length == 0) {
-            main.transfer(BOTH, "");
-            return;
-        }else if(args != null && args.length == 2) {
-            String testDir = args[0];
-            if(isNotValidDirection(testDir)) {
-                log.error("You must pass a direction as the first parameter. As either both, in or out");
-                System.exit(1);
-            }
-
-            String testPartnerName = args[1];
-            direction = testDir;
-            main.transfer(direction, testPartnerName);
-        } else if(args != null && args.length == 1) {
-            String testValue = args[0];
-
-            if(isValidDirection(testValue)) {
-                main.transfer(direction, "");
-                return;
-            } else {
-                main.transfer(BOTH, testValue);
-                return;
-            }
-        } else {
-            log.error("You have passed too many parameters");
+        try {
+            main.process(args);
+        }catch(Exception e) {
+            log.error(e.getMessage(), e);
             System.exit(1);
+        }
+        System.exit(0);
+    }
+
+    private void process(String...args) throws Exception {
+
+        log.info("Begin processing FTP/SFTP");
+
+        // if args is null or empty then we will process all partners in both directions
+        if (args == null || args.length == 0) {
+
+            log.info(String.format("We received no arguments"));
+            processAllPartnersInBothDirections();
+
+
+        // we have at least 1 argument
+        } else if (args != null && args.length > 0) {
+
+            // we only have 1 argument
+            if(args.length == 1) {
+
+                String arg1 = args[0];
+                // we will process both directions for the given partner
+                if(isValidPartner(arg1)) {
+                    log.info(String.format("We received 1 arguments as a valid partner: %s", arg1));
+
+                    processPartnerInBothDirections(arg1);
+
+                // we will process all partners for given direction
+                } else if(isValidDirection(arg1)) {
+                    log.info(String.format("We received 1 arguments as a valid direction: %s", arg1));
+
+                    processAllPartnersForGivenDirection(arg1);
+
+                } else {
+                    log.info(String.format("We received 1 arguments but is not a valid partner or direction: %s", arg1));
+
+                    throw new Exception(String.format("You must pass a valid direction or partner, received Argument1: %s", arg1));
+                }
+
+            // we have both arguments
+            } else if(args.length == 2) {
+
+                String arg1 = args[0];
+                String arg2 = args[1];
+
+                if(hasNoValidDirection(arg1, arg2) && hasNoValidPartner(arg1, arg2)) {
+                    log.info(String.format("We received 2 arguments but they are not valid as a partner or a direction. Argument1 %s  Argument2: %s", arg1, arg2));
+                    throw new Exception(String.format("You must pass a valid direction and partner, received Argument1: %s  and Argument2: %s", arg1, arg2));
+                }
+
+                // if we can determine if both are valid then we can continue
+                if(hasValidDirection(arg1, arg2) && hasValidPartner(arg1, arg2)) {
+                    // this one will be if arguments are passed as expected (direction partner
+                    if(isValidDirection(arg1) && isValidPartner(arg2)) {
+                        log.info(String.format("We received 2 arguments, Partner: %s and Direction: %s", arg2, arg1));
+
+                        processPartnerInGivenDirection(arg1, arg2);
+
+                    // arguments are passed reversed. We could have stopped processing but I will handle it
+                    } else if(isValidPartner(arg1) && isValidDirection(arg2)) {
+                        log.info(String.format("We received 2 arguments, Partner: %s and Direction: %s", arg1, arg2));
+
+                        processPartnerInGivenDirection(arg2, arg1);
+                    } else {
+                        //we really should never be here
+                        log.info(String.format("We received 2 arguments but they are not valid as a partner or a direction. Argument1 %s  Argument2: %s", arg1, arg2));
+                        throw new Exception(String.format("You must pass a valid direction and partner, received Argument1: %s  and Argument2: %s", arg1, arg2));
+                    }
+                } else {
+                    log.info(String.format("We received 2 arguments but they are not valid as a partner or a direction. Argument1 %s  Argument2: %s", arg1, arg2));
+                    throw new Exception(String.format("You must pass a valid direction and partner, received Argument1: %s  and Argument2: %s", arg1, arg2));
+                }
+            }
+
+            // we should never hit this logic but its a fail safe
+        } else {
+            log.info(String.format("Somethin bad about to happen"));
+            throw new Exception("Something really bad happened");
         }
     }
 
-    private static boolean isNotValidDirection(String dir) {
+
+    private void processAllPartnersInBothDirections() throws Exception {
+        for(Partner partner : PartnerHolder.getInstance().getPartnerList()) {
+            transferIn(partner);
+            transferOut(partner);
+        }
+    }
+
+    private void processAllPartnersForGivenDirection(String direction) throws Exception {
+
+        for(Partner partner : PartnerHolder.getInstance().getPartnerList()) {
+            if(IN.equalsIgnoreCase(direction)) {
+                transferIn(partner);
+            } else {
+                transferOut(partner);
+            }
+        }
+    }
+
+
+
+    private boolean hasNoValidDirection(String...args) {
+        return ! hasValidDirection(args);
+    }
+    private boolean hasValidDirection(String...args) {
+        for(String arg : args) {
+            if(isValidDirection(arg)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean hasNoValidPartner(String...args) throws Exception {
+        return ! hasValidPartner(args);
+    }
+    private boolean hasValidPartner(String...args) throws Exception {
+        for(String arg : args) {
+            if(isValidPartner(arg)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    private void processPartnerInBothDirections(String partnerName) throws Exception {
+        Partner partner = getPartner(partnerName);
+        transferIn(partner);
+        transferOut(partner);
+    }
+
+    private void processPartnerInGivenDirection(String direction, String partnerName) throws Exception {
+        Partner partner = getPartner(partnerName);
+        if(IN.equalsIgnoreCase(direction)) {
+            transferIn(partner);
+        } else {
+            transferOut(partner);
+        }
+    }
+
+    private boolean isNotValidDirection(String dir) {
         return ! isValidDirection(dir);
     }
 
-    private static boolean isValidDirection(String dir) {
-        return dir.equalsIgnoreCase(IN) || dir.equalsIgnoreCase(OUT) || dir.equalsIgnoreCase(BOTH);
+    private Partner getPartner(String name) throws Exception {
+        return PartnerHolder.getInstance().find(name);
+    }
+    private boolean isValidDirection(String dir) {
+        String temp = dir.toUpperCase();
+        return temp.equalsIgnoreCase(IN) || temp.equalsIgnoreCase(OUT) || temp.equalsIgnoreCase(BOTH);
     }
 
-
-    private void transfer(String direction, String name) throws IOException, URISyntaxException {
-        log.info("USING JSON: " + PartnerHolder.getInstance().getJson());
-        Partner partner = PartnerHolder.getInstance().find(name);
-        transferService = TransferServiceFactory.create(partner);
-
-        if ("in".equalsIgnoreCase(direction)) {
-            transferIn(name);
-        } else if ("out".equalsIgnoreCase(direction)) {
-            transferOut(name);
-        } else {
-            transferIn(name);
-            transferOut(name);
-        }
+    private boolean isNotValidPartner(String partnerName) throws Exception {
+        return ! isValidPartner(partnerName);
+    }
+    private boolean isValidPartner(String partnerName) throws Exception {
+        return PartnerHolder.getInstance().find(partnerName) != null;
     }
 
-    private void transferIn(String name) {
-        //SftpTransferService transferService = SftpTransferService.create();
+    private void transferIn(Partner partner) {
+        TransferService transferService = TransferServiceFactory.create(partner);
 
         try {
-            transferService.inbound(name);
+            transferService.inbound(partner);
         } catch (FileNotFoundException e) {
-            e.printStackTrace();
+            log.error(e.getMessage(), e);
         } catch (URISyntaxException e) {
-            e.printStackTrace();
+            log.error(e.getMessage(), e);
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error(e.getMessage(), e);
         }
     }
 
-    private void transferOut(String name) {
+    private void transferOut(Partner partner) {
 
-        //SftpTransferService transferService = SftpTransferService.create();
+        TransferService transferService = TransferServiceFactory.create(partner);
 
         try {
-            transferService.outbound(name);
+            transferService.outbound(partner);
         } catch (FileNotFoundException e) {
-            e.printStackTrace();
+            log.error(e.getMessage(), e);
         } catch (URISyntaxException e) {
-            e.printStackTrace();
+            log.error(e.getMessage(), e);
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error(e.getMessage(), e);
         }
-
-
     }
 }
