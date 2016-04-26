@@ -1,16 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Configuration status="INFO">
     <Properties>
-        <Property name="log-path">${sys.AEG_HOME}/log/</Property>
+        <Property name="log-path">${env:AEG_HOME}/log/</Property>
     </Properties>
     <Appenders>
         <RollingFile name="RollingFile" fileName="${log-path}/transfers.log"
-                     filePattern="${log-path}/transfers-%d{yyyy-MM-dd}-%i.log" >
+                     filePattern="log/$${date:MM-yyyy}/app-%d{MM-dd-yyyy}-%i.log.gz">
             <PatternLayout>
-                <pattern>%d{dd/MMM/yyyy HH:mm:ss,SSS}- %c{1}: %m%n</pattern>
+                <pattern>%d{MMM/dd/yyyy HH:mm:ss,SSS}- %c{1}: %m%n</pattern>
             </PatternLayout>
             <Policies>
-                <SizeBasedTriggeringPolicy size="10010 KB" />
+                <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+                <SizeBasedTriggeringPolicy size="250 MB"/>
             </Policies>
             <DefaultRolloverStrategy max="4"/>
         </RollingFile>

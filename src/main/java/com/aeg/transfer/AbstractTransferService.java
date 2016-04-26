@@ -22,13 +22,22 @@ public abstract class AbstractTransferService implements TransferService {
 
     private Logger log = LogManager.getLogger(SftpTransferService.class.getName());
 
-    private static final String IMS_PRIVATE_KEY = "/keys/ims-priv.asc";
+    private static String IMS_PRIVATE_KEY = "%s/config/ims-priv.asc";
     private static final String IMS_PRIVKEY_PASSWORD = "AEG2016!";
 
     protected static final String COMPLETED_EXPRESSION = "done";
     protected static final String ORIGINAL_DIRECTORY = "orig";
     protected static final String PROCESSED_DIRECTORY = "done";
 
+    public AbstractTransferService() {
+        String aegHome = System.getenv().get("AEG_HOME");
+        if(null == aegHome || "".equalsIgnoreCase(aegHome)) {
+            log.error("Error finding AEG_HOME");
+            System.exit(1);
+        }
+
+        IMS_PRIVATE_KEY = String.format(IMS_PRIVATE_KEY, aegHome);
+    }
     public void inbound(final Partner partner) throws IOException, URISyntaxException {
 
         log.info("<<< Inbound...");
@@ -52,7 +61,9 @@ public abstract class AbstractTransferService implements TransferService {
                 File localDirectory = findOrCreateDirectory(localDir);
                 Vector<String> processedLocalFiles = inbound(remoteDir, filter, localDirectory, partner);
 
-                Vector<String> filesToTransfer = decryptAndSaveOriginals(partner, localDirectory, processedLocalFiles);
+                if(partner.getEncrypted() && null != processedLocalFiles && processedLocalFiles.size() > 0) {
+                    decryptAndSaveOriginals(partner, localDirectory, processedLocalFiles);
+                }
 
 
             } catch (Exception e) {
@@ -89,9 +100,15 @@ public abstract class AbstractTransferService implements TransferService {
                 File localDirectory = findOrCreateDirectory(localDir);
                 File processedDirectory = findOrCreateProcessedDir(localDir);
                 File[] files = listLocalFiles(localDir, filter);
-                Vector<String> filesToTransfer = encryptAndSaveOriginals(partner, localDirectory, files);
+                Vector<String> filesToTransfer = new Vector<String>();
+                Vector<File> filePointers = new Vector<File>();
+                if(partner.getEncrypted()) {
+                    filesToTransfer = encryptAndSaveOriginals(partner, localDirectory, files);
+                } else {
+                    filePointers = translateToFile(files);
+                }
 
-                outbound(filesToTransfer, localDirectory, processedDirectory, remoteDir, partner);
+                outbound(filePointers, localDirectory, processedDirectory, remoteDir, partner);
 
             } catch (Exception e) {
                 throw e;
@@ -125,9 +142,7 @@ public abstract class AbstractTransferService implements TransferService {
                 File file = new File(fileName);
                 PGPFileProcessor fileProcessor = new PGPFileProcessor();
                 fileProcessor.setAsciiArmored(false);
-
-                URL url = SftpTransferService.class.getResource(IMS_PRIVATE_KEY);
-                fileProcessor.setKeyFile(url.getPath());
+                fileProcessor.setKeyFile(IMS_PRIVATE_KEY);
                 fileProcessor.setPassphrase(IMS_PRIVKEY_PASSWORD);
                 String encryptedFile = String.format("%s", file.getAbsolutePath());
                 fileProcessor.setInputFile(encryptedFile);
@@ -202,6 +217,13 @@ public abstract class AbstractTransferService implements TransferService {
         return translated;
     }
 
+    private Vector<File> translateToFile(File[] files) {
+        Vector<File> translated = new Vector<File>();
+        for(File file : files) {
+            translated.add(file);
+        }
+        return translated;
+    }
     protected Connection getConnection(Partner partner) {
         Connection connection = new Connection();
         connection.setHost(partner.getHost());
@@ -216,6 +238,18 @@ public abstract class AbstractTransferService implements TransferService {
 
         for(String fileName : filesToMove) {
             File file = new File(fileName);
+            String sourceDir = String.format("%s", localDir.getAbsolutePath());
+            Path sourcePath = Paths.get(sourceDir);
+            String targetDir = getProcessedDirectory(sourceDir);
+            String targetFilePath = String.format("%s/%s", targetDir, file.getName());
+            Path targetPath = Paths.get(targetFilePath);
+            Files.move(sourcePath, targetPath);
+        }
+    }
+
+    protected void moveFilesToProcessed(File localDir, Vector<File> filesToMove) throws IOException {
+
+        for(File file : filesToMove) {
             String sourceDir = String.format("%s", localDir.getAbsolutePath());
             Path sourcePath = Paths.get(sourceDir);
             String targetDir = getProcessedDirectory(sourceDir);
@@ -297,6 +331,6 @@ public abstract class AbstractTransferService implements TransferService {
 
     protected abstract void connect(Connection connection) throws Exception;
     protected abstract void cleanup() throws Exception;
-    protected abstract void outbound(Vector<String> filesToTransfer, File localDir, File processedDir, String remoteDir, Partner partner) throws Exception;
+    protected abstract void outbound(Vector<File> filesToTransfer, File localDir, File processedDir, String remoteDir, Partner partner) throws Exception;
     protected abstract Vector<String> inbound(String remoteDir, String filter, File localDir, Partner partner) throws Exception;
 }

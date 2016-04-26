@@ -10,3 +10,4 @@ output/
 build/ 
 target/ 
 artifacts/ 
+log/ 

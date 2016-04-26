@@ -30,30 +30,29 @@ public class FtpTransferService extends AbstractTransferService {
     }
 
 
-    protected void outbound(Vector<String> filesToTransfer, File localDir, File processedDir, String remoteDir, Partner partner) throws Exception {
+    protected void outbound(Vector<File> filesToTransfer, File localDir, File processedDir, String remoteDir, Partner partner) throws Exception {
 
-        Vector<String> filesToMove = new Vector<String>();
+        Vector<File> filesToMove = new Vector<File>();
 
         ftp.changeWorkingDirectory(remoteDir);
 
 
-        for (String fileName : filesToTransfer) {
+        for (File file : filesToTransfer) {
 
-            File file = new File(fileName);
             FileInputStream fis = new FileInputStream(file);
 
             // copy to their server
-            ftp.storeFile(fileName, fis);
+            ftp.storeFile(file.getName(), fis);
 
             fis.close();
 
-            log.info(String.format("File %s transferred successfully to host.", fileName));
+            log.info(String.format("File %s transferred successfully to host.", file.getName()));
 
-            filesToMove.add(fileName);
+            filesToMove.add(file);
         }
 
         // move them all to processed
-        moveToProcessed(localDir, filesToMove);
+        moveFilesToProcessed(localDir, filesToMove);
 
         // maybe delete the originals
 
