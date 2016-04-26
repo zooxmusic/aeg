@@ -89,8 +89,8 @@ public class FtpTransferService extends AbstractTransferService {
 
                 try {
 
-                    String from = localFilePath;
-                    String to = String.format("%s/%s", getProcessedDirectory(remoteDir), ftpFile.getName());
+                    String from = String.format("%s/%s", remoteDir, ftpFile.getName());
+                    String to = String.format("%s/done/%s", remoteDir, ftpFile.getName());
                     ftp.rename(from, to);
 
                     String message = String.format("Remote File: [%s] was downloaded to %s and then moved to to [%s]", remoteDir, localFilePath, to);
