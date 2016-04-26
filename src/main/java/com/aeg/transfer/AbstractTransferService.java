@@ -99,11 +99,14 @@ public abstract class AbstractTransferService implements TransferService {
                 localDir = sanitizeDirectory(localDir);
                 File localDirectory = findOrCreateDirectory(localDir);
                 File processedDirectory = findOrCreateProcessedDir(localDir);
+                if(partner.getEncrypted()) {
+                    findOrCreateDirectory(getOriginalDirectory(localDir));
+                }
                 File[] files = listLocalFiles(localDir, filter);
                 Vector<String> filesToTransfer = new Vector<String>();
                 Vector<File> filePointers = new Vector<File>();
                 if(partner.getEncrypted()) {
-                    filesToTransfer = encryptAndSaveOriginals(partner, localDirectory, files);
+                    filePointers = encryptAndSaveOriginals(partner, localDirectory, files);
                 } else {
                     filePointers = translateToFile(files);
                 }
@@ -157,21 +160,21 @@ public abstract class AbstractTransferService implements TransferService {
         return decryptedFiles;
     }
 
-    protected Vector<String> encryptAndSaveOriginals(final Partner partner, final File sourceDir, final File[] files) throws IOException {
-        Vector<String> encryptedFiles = encryptLocalFiles(partner, files);
+    protected Vector<File> encryptAndSaveOriginals(final Partner partner, final File sourceDir, final File[] files) throws IOException {
+        Vector<File> encryptedFiles = encryptLocalFiles(partner, files);
         saveOriginalFiles(sourceDir, files);
         return encryptedFiles;
     }
 
 
-    protected Vector<String> encryptLocalFiles(final Partner partner, final File[] files) {
+    protected Vector<File> encryptLocalFiles(final Partner partner, final File[] files) {
         if(null == files || files.length < 1) {
             return translate(files);
         }
         if(!partner.getEncrypted()) {
             return translate(files);
         }
-        Vector<String> filesToTransfer = new Vector<String>();
+        Vector<File> filesToTransfer = new Vector<File>();
         for(File file : files) {
             try {
                 PGPFileProcessor fileProcessor = new PGPFileProcessor();
@@ -182,7 +185,7 @@ public abstract class AbstractTransferService implements TransferService {
                 String encryptedFile = String.format("%s.gpg", file.getAbsolutePath());
                 fileProcessor.setOutputFile(encryptedFile);
                 fileProcessor.encrypt();
-                filesToTransfer.add(encryptedFile);
+                filesToTransfer.add(new File(encryptedFile));
             }catch(Exception e) {
                 log.error(e.getMessage(), e);
             }
@@ -192,8 +195,9 @@ public abstract class AbstractTransferService implements TransferService {
     }
 
     protected void saveOriginalFiles(File sourceDir, File[] files) throws IOException {
-        Path sourcePath = Paths.get(sourceDir.getAbsolutePath());
         for(File file : files) {
+            String source = String.format("%s/%s", sourceDir.getAbsolutePath(), file.getName());
+            Path sourcePath = Paths.get(source);
             Path targetPath = Paths.get(String.format("%s/%s", getOriginalDirectory(sourceDir.getAbsolutePath()), file.getName()));
             Files.move(sourcePath, targetPath);
         }
@@ -209,10 +213,10 @@ public abstract class AbstractTransferService implements TransferService {
             //Files.move(sourcePath, targetPath);
         }
     }
-    private Vector<String> translate(File[] files) {
-        Vector<String> translated = new Vector<String>();
+    private Vector<File> translate(File[] files) {
+        Vector<File> translated = new Vector<File>();
         for(File file : files) {
-            translated.add(file.getAbsolutePath());
+            translated.add(file);
         }
         return translated;
     }
@@ -250,10 +254,9 @@ public abstract class AbstractTransferService implements TransferService {
     protected void moveFilesToProcessed(File localDir, Vector<File> filesToMove) throws IOException {
 
         for(File file : filesToMove) {
-            String sourceDir = String.format("%s", localDir.getAbsolutePath());
+            String sourceDir = String.format("%s/%s", localDir.getAbsolutePath(), file.getName());
             Path sourcePath = Paths.get(sourceDir);
-            String targetDir = getProcessedDirectory(sourceDir);
-            String targetFilePath = String.format("%s/%s", targetDir, file.getName());
+            String targetFilePath = String.format("%s/done/%s", localDir.getAbsolutePath(), file.getName());
             Path targetPath = Paths.get(targetFilePath);
             Files.move(sourcePath, targetPath);
         }
