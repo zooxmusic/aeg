@@ -83,7 +83,7 @@
       "encrypted": "true",
       "keyFile": "/keys/icfpub.asc",
       "keyUser": "NJCEP",
-      "keyPassword": "5YF08pcm",
+      "keyPassword": "",
       "host": "transfer.icfwebservices.com",
       "port": 22,
       "username": "NJCEP_test",

@@ -204,11 +204,7 @@ public class AegMain {
 
         try {
             transferService.inbound(partner);
-        } catch (FileNotFoundException e) {
-            log.error(e.getMessage(), e);
-        } catch (URISyntaxException e) {
-            log.error(e.getMessage(), e);
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error(e.getMessage(), e);
         }
     }
@@ -219,11 +215,7 @@ public class AegMain {
 
         try {
             transferService.outbound(partner);
-        } catch (FileNotFoundException e) {
-            log.error(e.getMessage(), e);
-        } catch (URISyntaxException e) {
-            log.error(e.getMessage(), e);
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error(e.getMessage(), e);
         }
     }
