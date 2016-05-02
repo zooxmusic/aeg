@@ -1,5 +1,6 @@
 package com.aeg;
 
+import com.aeg.mail.MailMan;
 import com.aeg.partner.Partner;
 import com.aeg.partner.PartnerHolder;
 import com.aeg.transfer.TransferService;
@@ -46,6 +47,11 @@ public class AegMain {
     private void process(String...args) throws Exception {
 
         log.info("Begin processing FTP/SFTP");
+
+        if(hasTestMail(args)) {
+            sendTestMail();
+            return;
+        }
 
         // if args is null or empty then we will process all partners in both directions
         if (args == null || args.length == 0) {
@@ -121,6 +127,18 @@ public class AegMain {
         }
     }
 
+    private boolean hasTestMail(String...args) {
+        for(String arg : args) {
+            if(arg.toLowerCase().contains("mail")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void sendTestMail() {
+        MailMan.deliverTest();
+    }
 
     private void processAllPartnersInBothDirections() throws Exception {
         for(Partner partner : PartnerHolder.getInstance().getPartnerList()) {

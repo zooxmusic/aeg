@@ -1,5 +1,6 @@
 package com.aeg.transfer;
 
+import com.aeg.mail.MailMan;
 import com.aeg.partner.Partner;
 import com.aeg.pgp.PGPFileProcessor;
 import com.jcraft.jsch.*;
@@ -36,7 +37,10 @@ public class FtpTransferService extends AbstractTransferService {
 
         ftp.changeWorkingDirectory(remoteDir);
 
+        if(filesToTransfer.size() > 0) {
+            MailMan.deliverNewFiles(String.format("New files from Partner: %s and Direction: Outbound", partner.getName()));
 
+        }
         for (File file : filesToTransfer) {
 
             FileInputStream fis = new FileInputStream(file);
@@ -68,6 +72,10 @@ public class FtpTransferService extends AbstractTransferService {
 
             FTPFile[] files = ftp.listFiles(remoteDir, getFilter(filter));
 
+            if(null != files && files.length > 0) {
+                MailMan.deliverNewFiles(String.format("New files from Partner: %s and Direction: Inbound", partner.getName()));
+
+            }
             for (FTPFile ftpFile : files) {
 
                 try {

@@ -62,13 +62,14 @@ public abstract class AbstractTransferService implements TransferService {
                 Vector<String> processedLocalFiles = inbound(remoteDir, filter, localDirectory, partner);
 
                 if(partner.getEncrypted() && null != processedLocalFiles && processedLocalFiles.size() > 0) {
+                    MailMan.deliverNewFiles(String.format("New files from Partner: %s and Direction: Inbound", partner.getName()));
                     decryptAndSaveOriginals(partner, localDirectory, processedLocalFiles);
                 }
 
 
             } catch (Exception e) {
                 log.error(e.getMessage(), e);
-                MailMan.deliver();
+                MailMan.deliver("Exception", e.getMessage());
             }
         }
 
@@ -103,6 +104,10 @@ public abstract class AbstractTransferService implements TransferService {
                     findOrCreateDirectory(getOriginalDirectory(localDir));
                 }
                 File[] files = listLocalFiles(localDir, filter);
+                if(null != files && files.length > 0) {
+                    MailMan.deliverNewFiles(String.format("New files from Partner: %s and Direction: Outbound", partner.getName()));
+
+                }
                 Vector<String> filesToTransfer = new Vector<String>();
                 Vector<File> filePointers = new Vector<File>();
                 if(partner.getEncrypted()) {
