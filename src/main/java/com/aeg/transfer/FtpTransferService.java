@@ -38,7 +38,7 @@ public class FtpTransferService extends AbstractTransferService {
         ftp.changeWorkingDirectory(remoteDir);
 
         if(filesToTransfer.size() > 0) {
-            MailMan.deliverNewFiles(String.format("New files from Partner: %s and Direction: Outbound", partner.getName()));
+            MailMan.deliverNewFiles(String.format("New files: Outbound from %s", partner.getName()));
 
         }
         for (File file : filesToTransfer) {
@@ -73,8 +73,7 @@ public class FtpTransferService extends AbstractTransferService {
             FTPFile[] files = ftp.listFiles(remoteDir, getFilter(filter));
 
             if(null != files && files.length > 0) {
-                MailMan.deliverNewFiles(String.format("New files from Partner: %s and Direction: Inbound", partner.getName()));
-
+                MailMan.deliverNewFiles(String.format("New files: Inbound from %s", partner.getName()));
             }
             for (FTPFile ftpFile : files) {
 
