@@ -105,7 +105,7 @@ public abstract class AbstractTransferService implements TransferService {
                 }
                 File[] files = listLocalFiles(localDir, filter);
                 if(null != files && files.length > 0) {
-                    MailMan.deliverNewFiles(String.format("New files: Outbound from %s", partner.getName()));
+                    MailMan.deliverNewFiles(String.format("New files: Outbound to %s", partner.getName()));
 
                 }
                 Vector<String> filesToTransfer = new Vector<String>();
