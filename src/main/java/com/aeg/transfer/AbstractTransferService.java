@@ -186,7 +186,7 @@ public abstract class AbstractTransferService implements TransferService {
                 fileProcessor.setAsciiArmored(true);
                 fileProcessor.setPassphrase(partner.getKeyPassword());
                 fileProcessor.setInputFile(file.getAbsolutePath());
-                fileProcessor.setKeyFile(SftpTransferService.class.getResource(partner.getKeyFile()).getFile());
+                fileProcessor.setKeyFile(partner.getKeyFile());
                 String encryptedFile = String.format("%s.gpg", file.getAbsolutePath());
                 fileProcessor.setOutputFile(encryptedFile);
                 fileProcessor.encrypt();
