@@ -112,9 +112,9 @@ public class MailMan {
 
             Address[] recipients = (test)? getTestRecipients() : getRecipients();
 
-            Message message = new MimeMessage(getSession());
+            MimeMessage message = new MimeMessage(getSession());
             message.setFrom(new InternetAddress(from));
-            message.setRecipients(Message.RecipientType.TO, recipients);
+            message.setRecipients(MimeMessage.RecipientType.TO, recipients);
             message.setSubject(subject);
             message.setText(msg);
 

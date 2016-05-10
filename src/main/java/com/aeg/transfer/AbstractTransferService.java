@@ -41,7 +41,7 @@ public abstract class AbstractTransferService implements TransferService {
     public void inbound(final Partner partner) throws IOException, URISyntaxException {
 
         log.info("<<< Inbound...");
-
+        boolean sentNewMail = false;
         Connection conn = getConnection(partner);
 
         for (FileMapping fileMapping : partner.getInboundFileMappings()) {
@@ -61,7 +61,8 @@ public abstract class AbstractTransferService implements TransferService {
                 File localDirectory = findOrCreateDirectory(localDir);
                 Vector<String> processedLocalFiles = inbound(remoteDir, filter, localDirectory, partner);
 
-                if(partner.getEncrypted() && null != processedLocalFiles && processedLocalFiles.size() > 0) {
+                if(!sentNewMail && null != processedLocalFiles && processedLocalFiles.size() > 0) {
+                    sentNewMail = true;
                     MailMan.deliverNewFiles(String.format("New files: Inbound from %s", partner.getName()));
                     decryptAndSaveOriginals(partner, localDirectory, processedLocalFiles);
                 }
@@ -83,6 +84,7 @@ public abstract class AbstractTransferService implements TransferService {
 
         Connection conn = getConnection(partner);
 
+        boolean sentNewMail = false;
         for (FileMapping fileMapping : partner.getOutboundFileMappings()) {
 
             String localDir = fileMapping.getLocal();
@@ -104,7 +106,8 @@ public abstract class AbstractTransferService implements TransferService {
                     findOrCreateDirectory(getOriginalDirectory(localDir));
                 }
                 File[] files = listLocalFiles(localDir, filter);
-                if(null != files && files.length > 0) {
+                if(!sentNewMail && null != files && files.length > 0) {
+                    sentNewMail = true;
                     MailMan.deliverNewFiles(String.format("New files: Outbound to %s", partner.getName()));
 
                 }

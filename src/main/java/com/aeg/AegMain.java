@@ -5,6 +5,7 @@ import com.aeg.partner.Partner;
 import com.aeg.partner.PartnerHolder;
 import com.aeg.transfer.TransferService;
 import com.aeg.transfer.TransferServiceFactory;
+import com.aeg.util.ProcessSingleton;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -33,6 +34,7 @@ public class AegMain {
      * @throws URISyntaxException
      */
     public static void main(String[] args) throws IOException, URISyntaxException {
+        ProcessSingleton.getInstance().start();
         log.info("we are about to embark on a great journey;");
         AegMain main = new AegMain();
         try {
@@ -40,6 +42,9 @@ public class AegMain {
         }catch(Exception e) {
             log.error(e.getMessage(), e);
             System.exit(1);
+        } finally {
+
+           ProcessSingleton.getInstance().deliverMail();
         }
         System.exit(0);
     }
@@ -47,6 +52,7 @@ public class AegMain {
     private void process(String...args) throws Exception {
 
         log.info("Begin processing FTP/SFTP");
+
 
         if(hasTestMail(args)) {
             sendTestMail();

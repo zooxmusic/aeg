@@ -77,7 +77,7 @@ public class SftpTransferService extends AbstractTransferService {
                     log.info(message);
 
                     String oldPath = String.format("%s/%s", remoteDir, file.getFilename());
-                    String newPath = String.format("%s/done/%s", remoteDir, file.getFilename());
+                    String newPath = String.format("%s/done/%s.%d", remoteDir, file.getFilename(), System.currentTimeMillis());
                     channelSftp.rename(oldPath, newPath);
 
                     processedLocalFiles.add(localFilePath);
