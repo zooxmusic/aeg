@@ -64,8 +64,9 @@ public abstract class AbstractTransferService implements TransferService {
                 if(!sentNewMail && null != processedLocalFiles && processedLocalFiles.size() > 0) {
                     sentNewMail = true;
                     MailMan.deliverNewFiles(String.format("New files: Inbound from %s", partner.getName()));
-                    decryptAndSaveOriginals(partner, localDirectory, processedLocalFiles);
                 }
+                if(null != processedLocalFiles && processedLocalFiles.size() > 0)
+                decryptAndSaveOriginals(partner, localDirectory, processedLocalFiles);
 
 
             } catch (Exception e) {
